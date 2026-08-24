@@ -697,7 +697,9 @@ async def process_phone_input(message: Message):
     else:
         phone = (message.text or "").strip().replace(" ", "")
 
-    if not phone.startswith("+"):
+    if phone.isdigit():
+        phone = f"+{phone}"
+    elif not phone.startswith("+"):
         await message.reply_text(
             "❌ Raqam `+` belgisi bilan boshlanishi kerak. Qaytadan yuboring:",
             reply_markup=kb.phone_keyboard()
