@@ -16,15 +16,15 @@ def main_keyboard(is_active: bool = False):
         resize_keyboard=True
     )
 
-    def phone_keyboard():
-        return ReplyKeyboardMarkup(
-            keyboard=[
-                [KeyboardButton("📱 Raqamni yuborish", request_contact=True)],
-                [KeyboardButton("❌ Bekor qilish")]
-            ],
-            resize_keyboard=True,
-            one_time_keyboard=True
-        )
+def phone_keyboard():
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton("📱 Raqamni yuborish", request_contact=True)],
+            [KeyboardButton("❌ Bekor qilish")]
+        ],
+        resize_keyboard=True,
+        one_time_keyboard=True
+    )
 
 def interval_keyboard():
     """
