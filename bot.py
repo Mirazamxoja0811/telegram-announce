@@ -686,7 +686,23 @@ async def verify_and_sign_in(user_id: int, code: str, target_msg: Message):
 
 async def process_phone_input(message: Message):
     user_id = message.from_user.id
-    phone = message.text.strip().replace(" ", "")
+    if message.contact:
+        if message.contact.user_id and message.contact.user_id != user_id:
+            await message.reply_text(
+                "❌ Iltimos, o'zingizning telefon raqamingizni yuboring.",
+                reply_markup=kb.phone_keyboard()
+            )
+            return
+        phone = message.contact.phone_number.replace(" ", "")
+    else:
+        phone = (message.text or "").strip().replace(" ", "")
+
+    if not phone.startswith("+"):
+        await message.reply_text(
+            "❌ Raqam `+` belgisi bilan boshlanishi kerak. Qaytadan yuboring:",
+            reply_markup=kb.phone_keyboard()
+        )
+        return
 
     status_msg = await message.reply_text("⏳ **Telegram tasdiqlash kodi yuborilmoqda...**")
 
