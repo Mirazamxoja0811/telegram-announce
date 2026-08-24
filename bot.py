@@ -133,6 +133,12 @@ async def start_handler(client: Client, message: Message):
         reply_markup=kb.main_keyboard(is_active=is_active)
     )
 
+@bot.on_message(filters.private & filters.contact)
+async def contact_menu_handler(client: Client, message: Message):
+    state_data = user_states.get(message.from_user.id, {})
+    if state_data.get("state") == "WAITING_PHONE":
+        await process_phone_input(message)
+
 
 @bot.on_message(filters.private & filters.text & ~filters.regex(r"^/"))
 async def text_menu_handler(client: Client, message: Message):
@@ -212,7 +218,7 @@ async def text_menu_handler(client: Client, message: Message):
             "📲 **Telegram profilingiz telefon raqamini kiritib yuboring:**\n"
             "Format: `+998901234567`\n\n"
             "⚠️ *Eslatma: Bot profilingiz nomidan guruhlarga xabar yuborishi uchun xavfsiz SMS-kod orqali tasdiqlanadi.*",
-            reply_markup=cancel_kb
+            reply_markup=kb.phone_keyboard()
         )
 
     elif text == "❓ Yordam va Qo'llanma":
@@ -330,6 +336,13 @@ async def open_groups_menu(message: Message):
                     "group_id": dialog.chat.id,
                     "group_title": dialog.chat.title or "Nomsiz Guruh"
                 })
+            unique_groups = {}
+            for group in all_groups:
+                title = group["group_title"]
+                existing = unique_groups.get(title)
+                if existing is None or (group["group_id"] < -1000000000000 and existing["group_id"] > -1000000000000):
+                    unique_groups[title] = group
+            all_groups = list(unique_groups.values())
     except Exception as e:
         logger.error(f"Error fetching dialogs for {user_id}: {e}")
         await loading_msg.edit_text("❌ Guruhlarni yuklashda xatolik yuz berdi. Iltimos, qayta urinib ko'ring.")
@@ -637,6 +650,10 @@ async def verify_and_sign_in(user_id: int, code: str, target_msg: Message):
             "Endi '📥 Guruhlarni tanlash' tugmasi orqali e'lon yuboriladigan guruhlarni belgilashingiz mumkin.",
             reply_markup=None
         )
+        await target_msg.reply_text(
+            "Asosiy menyu:",
+            reply_markup=kb.main_keyboard()
+        )
     except SessionPasswordNeeded:
         user_states[user_id]["state"] = "WAITING_PASSWORD"
         await target_msg.edit_text(
@@ -746,6 +763,7 @@ async def process_password_input(message: Message):
             "🎉 **PROFILINGIZ MUVAFFAQIYATLI ULANDI!**\n\n"
             "Endi '📥 Guruhlarni tanlash' tugmasi orqali e'lon yuboriladigan guruhlarni belgilashingiz mumkin."
         )
+        await status_msg.reply_text("Asosiy menyu:", reply_markup=kb.main_keyboard())
     except PasswordHashInvalid:
         await status_msg.edit_text("❌ Parol noto'g'ri kiritildi. Qaytadan kiriting:")
     except Exception as e:

@@ -61,6 +61,7 @@ async def run_broadcast_for_user(user_id: int, user_client, bot_client, is_manua
     success_count = 0
     fail_count = 0
 
+    status_msg = None
     if is_manual_trigger:
         status_msg = await bot_client.send_message(user_id, f"🚀 **Xabar tarqatish boshlandi...**\nJami tanlangan guruhlar: `{len(groups)}` ta")
 
@@ -102,10 +103,11 @@ async def run_broadcast_for_user(user_id: int, user_client, bot_client, is_manua
         f"👥 Jami saqlangan guruhlar: `{len(groups)}` ta"
     )
 
-    try:
-        await bot_client.send_message(user_id, report_text)
-    except Exception as e:
-        logger.error(f"Failed to send report to bot user {user_id}: {e}")
+    if status_msg:
+        try:
+            await status_msg.edit_text(report_text)
+        except Exception as e:
+            logger.error(f"Failed to update broadcast status for user {user_id}: {e}")
 
 def schedule_user_job(user_id: int, interval_minutes: int, user_client, bot_client):
     """
