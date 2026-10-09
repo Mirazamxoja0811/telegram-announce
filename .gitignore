@@ -1,0 +1,16 @@
+# Virtual environments
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Sensitive and dynamic files
+.env
+data.json
+*.session
+*.session-journal
+
+# IDEs
+.idea/
+.vscode/

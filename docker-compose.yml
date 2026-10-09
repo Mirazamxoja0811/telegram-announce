@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: telegram_announce_bot
+    restart: unless-stopped
+    volumes:
+      - ./.env:/app/.env
+      - ./data.json:/app/data.json
+      # Agar ".session" fayllar bo'lsa ularni ham yo'qotmaslik uchun qolgan ma'lumotlarni saqlash kerak bo'lishi mumkin
+      # Eng yaxshisi butun joriy papkani volume qilish, lekin productionda faqat kerakli fayllarni saqlash yaxshi:
+      - .:/app
