@@ -87,7 +87,10 @@ async def get_or_create_user_client(user_id: int):
             api_id=int(API_ID),
             api_hash=API_HASH,
             session_string=session_str,
-            in_memory=True
+            in_memory=True,
+            device_model="iPhone 14 Pro",
+            system_version="iOS 16.5",
+            app_version="10.0"
         )
         await user_cli.start()
         active_user_clients[user_id] = user_cli
@@ -786,7 +789,10 @@ async def process_qr_login_request(message: Message):
     temp_client = Client(
         name=f"temp_qr_{user_id}",
         api_id=int(API_ID),
-        api_hash=API_HASH
+        api_hash=API_HASH,
+        device_model="iPhone 14 Pro",
+        system_version="iOS 16.5",
+        app_version="10.0"
     )
     
     try:
@@ -878,7 +884,10 @@ async def process_phone_input(message: Message):
     temp_client = Client(
         name=f"temp_user_{user_id}",
         api_id=int(API_ID),
-        api_hash=API_HASH
+        api_hash=API_HASH,
+        device_model="iPhone 14 Pro",
+        system_version="iOS 16.5",
+        app_version="10.0"
     )
     
     try:
