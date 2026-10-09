@@ -122,7 +122,7 @@ async def start_handler(client: Client, message: Message):
         f"avtomatik ravishda e'lon va xabarlar tarqatishingiz mumkin.\n\n"
         f"📱 **Profil holati:** {status_account}\n"
         f"⏱ **Vaqt oralig'i:** 5-15 daqiqa (tasodifiy)\n"
-        f"⚡️ **Tarqatish holati:** {'🟢 FAOL' if is_active else '⏹ TO\'XTATILGAN'}\n\n"
+        f"⚡️ **Tarqatish holati:** {'🟢 FAOL' if is_active else '⏹ TOXTATILGAN'}\n\n"
         f"Boshlash uchun pastdagi tugmalardan foydalaning:"
     )
 
