@@ -190,6 +190,17 @@ async def text_menu_handler(client: Client, message: Message):
         )
 
     elif text == "🔑 Akkauntni ulash / Almashtirish":
+        user_states[user_id] = {"state": "WAITING_LOGIN_METHOD"}
+        await message.reply_text(
+            "🔐 **Profilni qanday usulda ulamoqchisiz?**\n\n"
+            "Sizda ikkita xavfsiz usul mavjud:\n"
+            "1️⃣ **Telefon orqali:** Raqamingizni va Telegramdan kelgan SMS kodni kiritasiz.\n"
+            "2️⃣ **QR kod orqali:** Kompyuter yoki boshqa telefondan qulay skaner qilasiz (Parol kerak emas!).\n\n"
+            "👇 O'zingizga qulay usulni tanlang:",
+            reply_markup=kb.login_options_keyboard()
+        )
+
+    elif text == "📱 Telefon orqali ulanish":
         user_states[user_id] = {"state": "WAITING_PHONE"}
         contact_kb = ReplyKeyboardMarkup([
             [KeyboardButton("📱 Telefon raqamni yuborish", request_contact=True)],
@@ -202,14 +213,20 @@ async def text_menu_handler(client: Client, message: Message):
             reply_markup=contact_kb
         )
 
+    elif text == "📷 QR kod orqali ulanish":
+        await process_qr_login_request(message)
+
     elif text == "💎 Obuna bo'lish":
         user_states[user_id] = {"state": "WAITING_RECEIPT"}
         card_number = os.getenv("CARD_NUMBER", "8600 0000 0000 0000")
         cancel_kb = ReplyKeyboardMarkup([[KeyboardButton("❌ Bekor qilish")]], resize_keyboard=True)
         await message.reply_text(
             f"💎 **OBUNA BO'LISH**\n\n"
-            f"Botdan to'liq foydalanish va avtomatik tarqatishni yoqish uchun 30 kunlik obuna xarid qilishingiz kerak.\n"
-            f"💳 **Karta raqami:** `{card_number}`\n\n"
+            f"Botdan to'liq foydalanish va avtomatik tarqatishni yoqish uchun 30 kunlik obuna xarid qilishingiz kerak.\n\n"
+            f"💳 **KARTA RAQAMI:**\n"
+            f"━━━━━━━━━━━━━━━━━━━\n"
+            f"👉 `{card_number}` 👈\n"
+            f"━━━━━━━━━━━━━━━━━━━\n\n"
             f"To'lovni amalga oshirgach, to'lov chekini (skrinshotini) shu yerga rasm ko'rinishida yuboring.",
             reply_markup=cancel_kb
         )
@@ -219,7 +236,10 @@ async def text_menu_handler(client: Client, message: Message):
             "📖 **Botdan qanday foydalanish mumkin? (Qo'llanma)**\n\n"
             "**1-QADAM: 🔑 Akkauntni ulash**\n"
             "Bot sizning o'rningizga xabar yuborishi uchun profilingizni ulashingiz kerak. "
-            "Buning uchun menyudan '🔑 Akkauntni ulash' tugmasini bosing. Telefon raqamingizni va Telegramdan kelgan 5 xonali kodni kiriting.\n\n"
+            "Buning uchun menyudan '🔑 Akkauntni ulash' tugmasini bosing.\n"
+            "Sizda 2 xil usul bor:\n"
+            "📱 **Telefon orqali:** Raqamingizni va kodni kiritasiz.\n"
+            "📷 **QR kod orqali (Xavfsizroq):** Telegram > Sozlamalar > Qurilmalar (Devices) > Yangi qurilmani ulash orqali bot bergan QR kodni skaner qilasiz.\n\n"
             "**2-QADAM: 📥 Guruhlarni tanlash**\n"
             "Menyudan '📥 Guruhlarni tanlash' ni bosing. Bot profilingizdagi barcha guruhlarni ko'rsatadi. "
             "E'lon yubormoqchi bo'lgan guruhlaringizni belgilang va '💾 SAQLASH' tugmasini bosing.\n\n"
@@ -758,6 +778,90 @@ async def verify_and_sign_in(user_id: int, code: str, target_msg: Message):
         logger.error(f"Sign in error: {e}")
         await target_msg.edit_text(f"❌ Xatolik yuz berdi: {e}", reply_markup=None)
 
+
+async def process_qr_login_request(message: Message):
+    user_id = message.from_user.id
+    status_msg = await message.reply_text("⏳ **QR kod tayyorlanmoqda...**", reply_markup=ReplyKeyboardRemove())
+
+    temp_client = Client(
+        name=f"temp_qr_{user_id}",
+        api_id=int(API_ID),
+        api_hash=API_HASH
+    )
+    
+    try:
+        await temp_client.connect()
+        r = await temp_client.invoke(raw.functions.auth.ExportLoginToken(api_id=int(API_ID), api_hash=API_HASH, except_ids=[]))
+        
+        if not isinstance(r, raw.types.auth.LoginToken):
+            await temp_client.disconnect()
+            await status_msg.edit_text("❌ QR kod olishda xatolik yuz berdi.")
+            return
+
+        token = r.token
+        import base64
+        url = "tg://login?token=" + base64.urlsafe_b64encode(token).decode('utf-8').replace('=', '')
+        
+        # QR code rasm qilish
+        import qrcode
+        import io
+        qr = qrcode.QRCode(version=1, box_size=10, border=4)
+        qr.add_data(url)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        bio = io.BytesIO()
+        img.save(bio, "PNG")
+        bio.name = "qr.png"
+        bio.seek(0)
+        
+        await status_msg.delete()
+        qr_msg = await message.reply_photo(
+            photo=bio,
+            caption="📷 **Kodni skaner qiling!**\n\n"
+                    "1. Boshqa qurilmadan Telegramga kiring.\n"
+                    "2. **Sozlamalar (Settings) > Qurilmalar (Devices) > Yangi qurilmani ulash** ni bosing.\n"
+                    "3. Kamerani ushbu QR kodga qarating.\n\n"
+                    "⏳ *Kutmoqdamiz... (30 soniya)*"
+        )
+        
+        # Poll for 30 seconds
+        for _ in range(6):
+            await asyncio.sleep(5)
+            try:
+                check = await temp_client.invoke(raw.functions.auth.ExportLoginToken(api_id=int(API_ID), api_hash=API_HASH, except_ids=[]))
+                if isinstance(check, raw.types.auth.LoginTokenSuccess):
+                    await temp_client.invoke(raw.functions.auth.ImportLoginToken(token=token))
+                    
+                    session_string = await temp_client.export_session_string()
+                    user_data = await db.get_user(user_id)
+                    sub_end = user_data.get("subscription_end")
+                    if not sub_end:
+                        from datetime import datetime, timedelta
+                        sub_end = (datetime.now() + timedelta(days=2)).isoformat()
+                        
+                    await db.update_user(user_id, session_string=session_string, subscription_end=sub_end)
+                    active_user_clients[user_id] = temp_client
+                    
+                    try:
+                        if os.path.exists(f"temp_qr_{user_id}.session"):
+                            os.remove(f"temp_qr_{user_id}.session")
+                    except:
+                        pass
+                    
+                    await qr_msg.delete()
+                    user_states.pop(user_id, None)
+                    await message.reply_text("🎉 **PROFILINGIZ QR KOD ORQALI MUVAFFAQIYATLI ULANDI!**\n\nBosh menyu:", reply_markup=kb.main_keyboard(is_active=bool(user_data.get("is_active"))))
+                    return
+            except Exception as pe:
+                logger.error(f"QR poll error: {pe}")
+                
+        await temp_client.disconnect()
+        await qr_msg.edit_caption("❌ **Vaqt tugadi!**\nSiz QR kodni skaner qilmadingiz. Iltimos qaytadan urining.")
+        
+    except Exception as e:
+        await temp_client.disconnect()
+        logger.error(f"QR gen error: {e}")
+        await status_msg.edit_text(f"❌ Xatolik yuz berdi: {e}")
 
 async def process_phone_input(message: Message):
     user_id = message.from_user.id

@@ -17,6 +17,16 @@ def main_keyboard(is_active: bool = False):
         resize_keyboard=True
     )
 
+def login_options_keyboard():
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton("📱 Telefon orqali ulanish")],
+            [KeyboardButton("📷 QR kod orqali ulanish")],
+            [KeyboardButton("❌ Bekor qilish")]
+        ],
+        resize_keyboard=True
+    )
+
 def interval_keyboard():
     """
     Tayyor vaqt variantlari inline tugmalar ko'rinishida
